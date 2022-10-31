@@ -1,6 +1,6 @@
 #include <SFML/Graphics.hpp>
 
-// ' ' - empty; 'r' - red; 'y' - yellow
+// ' ' - empty; 'r' - red; 'y' - yellow; 'w' - one of the connected 4
 char board[6][7];
 
 int column, row;
@@ -15,7 +15,8 @@ sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Connect Four");
 
 void resetBoard()
 {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         for (int j = 0; j < 7; j++) board[i][j] = ' ';
     }
 }
@@ -81,14 +82,27 @@ void drawBoard()
     {
         for (int j = 0; j < 7; j++)
         {
+            circ.setOutlineThickness(0);
             int transparency = 255;
             if (i == row && j == column) transparency = 175;
 
             if (board[i][j] == ' ')         circ.setFillColor(sf::Color(15, 25, 30)); // empty
             else if (board[i][j] == 'r')    circ.setFillColor(sf::Color(235, 56, 70, transparency)); // red
             else if (board[i][j] == 'y')    circ.setFillColor(sf::Color(245, 211, 75, transparency)); // yellow
-            
-            
+      
+            else if (board[i][j] == 'w' && turn == 'r')
+            {
+                circ.setFillColor(sf::Color(245, 211, 75));
+                circ.setOutlineThickness(4);
+                circ.setOutlineColor(sf::Color(235, 56+20, 70+20));
+            }
+            else if (board[i][j] == 'w' && turn == 'y')
+            {
+                circ.setFillColor(sf::Color(235, 56, 70));
+                circ.setOutlineThickness(3);
+                circ.setOutlineColor(sf::Color(255, 213, 128));
+            }
+
             circ.setPosition(circlePosition);
             window.draw(circ);
 
@@ -97,7 +111,6 @@ void drawBoard()
         circlePosition.x = 5;
         circlePosition.y += 100;
     }
-
     window.display();
 }
 
@@ -106,54 +119,101 @@ bool win() {
     int counter = 0;
     for (int j = 0; j < 7; j++)
     {
-        if (board[row][j] == turn) counter++;
-        else counter = 0;
-
+        if (board[row][j] == turn)
+        {
+            board[row][j] = 'w';
+            counter++;
+        }
+        else
+        {
+            counter = 0;
+            for (int i = 0; i <= j; i++)
+                if (board[row][i] == 'w') board[row][i] = turn;
+        }
         if (counter == 4) return true;
     }
+    for (int j = 0; j < 7; j++)
+        if (board[row][j] == 'w') board[row][j] = turn;
 
     // column win
     counter = 0;
     for (int i = 0; i < 6; i++)
     {
-        if (board[i][column] == turn) counter++;
-        else counter = 0;
-
+        if (board[i][column] == turn)
+        {
+            board[i][column] = 'w';
+            counter++;
+        }
+        else
+        {
+            counter = 0;
+            for (int j = 0; j <= i; j++)
+                if (board[j][column] == 'w') board[j][column] = turn;
+        }
         if (counter == 4) return true;
     }
-
+    for (int i = 0; i < 6; i++)
+        if (board[i][column] == 'w') board[i][column] = turn;
 
     // 1st diagonal win
     counter = 1;
+    board[row][column] = 'w';
     for (int i = 1; (row - i >= 0) && (column - i >= 0); i++)
     {
-        if (board[row - i][column - i] == turn) counter++;
+        if (board[row - i][column - i] == turn)
+        {
+            board[row - i][column - i] = 'w';
+            counter++;
+        } 
         else break;
     }
 
     for (int i = 1; (row + i < 6) && (column + i < 7); i++)
     {
-        if (board[row + i][column + i] == turn) counter++;
+        if (board[row + i][column + i] == turn)
+        {
+            board[row + i][column + i] = 'w';
+            counter++;
+        } 
         else break;
     }
     if (counter >= 4) return true;
 
+    for (int i = 0; i < 6; i++)
+    {
+        for (int j = 0; j < 7; j++)
+            if (board[i][j] == 'w') board[i][j] = turn;
+    }
 
     // 2nd diagonal win
     counter = 1;
+    board[row][column] = 'w';
     for (int i = 1; (row - i >= 0) && (column + i < 7); i++)
     {
-        if (board[row - i][column + i] == turn) counter++;
+        if (board[row - i][column + i] == turn) 
+        {
+            counter++;
+            board[row - i][column + i] == 'w';
+        }
         else break;
     }
 
     for (int i = 1; (row + i < 6) && (column - i >= 0); i++)
     {
-        if (board[row + i][column - i] == turn) counter++;
+        if (board[row + i][column - i] == turn)
+        {
+            counter++;
+            board[row + i][column - i] = 'w';
+        } 
         else break;
     }
     if (counter >= 4) return true;
 
+    for (int i = 0; i < 6; i++)
+    {
+        for (int j = 0; j < 7; j++)
+            if (board[i][j] == 'w') board[i][j] = turn;
+    }
     // else
     return false;
 }
@@ -177,6 +237,7 @@ int main() {
 
     sf::Clock clock;
     sf::Time moveDelay = sf::seconds(0.25);
+    sf::Time newGamedelay = sf::seconds(2.5);
 
     while (window.isOpen()) {
 
@@ -223,15 +284,18 @@ int main() {
                 row--;
 
             for (int i = 0; i < 7; i++)
-                if (i == column && row >= 0)    board[row][i] = turn;
+                if (i == column && row >= 0 && !gameOver)    board[row][i] = turn;
 
             drawBoard();
 
             continue;
         }
 
-        resetBoard();
-        gameOver = false;
+        sf::Time elapsed = clock.getElapsedTime();
+        if (elapsed >= newGamedelay) {
+            resetBoard();
+            gameOver = false;
+        }
 
     }
 
